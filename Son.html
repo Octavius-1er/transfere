@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glass Music Player</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    background: linear-gradient(135deg,#141e30,#243b55);
+    color: white;
+    transition: background 1s ease, opacity 0.3s ease;
+}
+
+/* Glass panels */
+.sidebar, .genres, .main {
+    backdrop-filter: blur(15px);
+    background: rgba(255,255,255,0.08);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* LEFT */
+.sidebar {
+    width: 250px;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.song-item {
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    background: #2a2a2a;
+    margin-bottom: 8px;
+    transition: 0.3s;
+}
+
+.song-item:hover {
+    background: #3a3a3a;
+}
+
+/* CENTER */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.topbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 15px;
+}
+
+.topbar input {
+    padding: 8px 15px;
+    border-radius: 20px;
+    border: none;
+    width: 200px;
+    outline: none;
+}
+
+.player {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.cover {
+    width: 280px;
+    height: 280px;
+    object-fit: cover;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    margin-top: 20px;
+}
+
+.title {
+    margin: 15px;
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.control-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    margin: 10px;
+    color: white;
+    background: #1db954;
+    transition: background 0.6s ease, 
+                transform 0.2s ease, 
+                box-shadow 0.6s ease;
+}
+
+.control-btn:hover {
+    transform: scale(1.08);
+}
+
+.progress-container {
+    width: 60%;
+    height: 8px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 5px;
+    margin: 15px;
+    cursor: pointer;
+}
+
+.progress {
+    height: 100%;
+    width: 0%;
+    border-radius: 5px;
+    background: #1db954;
+    transition: width 0.2s linear, background 0.6s ease;
+}
+
+.time-display {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.volume-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.volume-container input {
+    width: 120px;
+}
+
+/* RIGHT */
+.genres {
+    width: 180px;
+    padding: 20px;
+}
+
+.genre-item {
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    background: #2a2a2a;
+    margin-bottom: 8px;
+    transition: 0.3s;
+}
+
+.genre-item:hover {
+    background: #3a3a3a;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    body { flex-direction: column; }
+    .sidebar, .genres { width: 100%; display: flex; overflow-x: auto; gap: 10px; }
+    .song-item, .genre-item { min-width: 120px; text-align: center; }
+    .progress-container { width: 80%; }
+    .cover { width: 200px; height: 200px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar" id="songList"></div>
+
+<div class="main">
+    <div class="topbar">
+        <input type="text" id="search" placeholder="Search song...">
+    </div>
+
+    <div class="player">
+        <img id="cover" class="cover">
+        <div id="title" class="title"></div>
+
+        <div class="time-display" id="timeDisplay">0:00 / 0:00</div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress" id="progress"></div>
+        </div>
+
+        <button id="playPauseBtn" class="control-btn">▶</button>
+
+        <div class="volume-container">
+            🔊
+            <input type="range" id="volumeSlider" min="0" max="100" step="1" value="100">
+        </div>
+    </div>
+</div>
+
+<div class="genres" id="genreList"></div>
+
+<audio id="audio"></audio>
+
+<script>
+let currentSongIndex = 0;
+let currentGenre = "All";
+
+const songs = [
+    { name: "It's raining tacos!", file: "song1.mp3", cover: "cover1.png", genre: "Roblox" },
+    { name: "I want to die with the smile", file: "song2.mp3", cover: "cover2.png", genre: "English" },
+    { name: "I just might", file: "song3.mp3", cover: "cover3.png", genre: "English" }
+];
+
+const genreThemes = {
+    "All": { bg: "linear-gradient(135deg,#141e30,#243b55)", color: "#1db954" },
+    "Roblox": { bg: "linear-gradient(135deg,#1e3c72,#2a5298)", color: "#2a5298" },
+    "English": { bg: "linear-gradient(135deg,#8e0e00,#1f1c18)", color: "#e10600" }
+};
+
+const audio = document.getElementById("audio");
+const cover = document.getElementById("cover");
+const title = document.getElementById("title");
+const progress = document.getElementById("progress");
+const progressContainer = document.getElementById("progressContainer");
+const timeDisplay = document.getElementById("timeDisplay");
+const volumeSlider = document.getElementById("volumeSlider");
+const songList = document.getElementById("songList");
+const genreList = document.getElementById("genreList");
+const searchInput = document.getElementById("search");
+const playPauseBtn = document.getElementById("playPauseBtn");
+
+function formatTime(time) {
+    if (!time || isNaN(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60).toString().padStart(2,'0');
+    return `${minutes}:${seconds}`;
+}
+
+function loadSong(index, autoplay = true) {
+    currentSongIndex = index;
+    const song = songs[index];
+
+    audio.src = song.file;
+    cover.src = song.cover;
+    title.innerText = song.name;
+
+    audio.load();
+
+    if (autoplay) {
+        audio.play().then(() => {
+            playPauseBtn.innerText = "⏸";
+        }).catch(()=>{});
+    }
+}
+
+playPauseBtn.addEventListener("click", () => {
+    if (!audio.src) return;
+
+    if (audio.paused) {
+        audio.play().then(() => playPauseBtn.innerText = "⏸");
+    } else {
+        audio.pause();
+        playPauseBtn.innerText = "▶";
+    }
+});
+
+audio.addEventListener("timeupdate", () => {
+    if (!audio.duration) return;
+    const percent = (audio.currentTime / audio.duration) * 100;
+    progress.style.width = percent + "%";
+    timeDisplay.innerText =
+        `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+});
+
+audio.addEventListener("ended", () => {
+    nextSong();
+});
+
+function nextSong(){
+    currentSongIndex++;
+    if(currentSongIndex >= songs.length) currentSongIndex = 0;
+    loadSong(currentSongIndex);
+}
+
+progressContainer.addEventListener("click", (e) => {
+    if (!audio.duration) return;
+    const width = progressContainer.clientWidth;
+    audio.currentTime = (e.offsetX / width) * audio.duration;
+});
+
+volumeSlider.addEventListener("input", () => {
+    audio.volume = volumeSlider.value / 100;
+});
+
+function applyTheme(genre) {
+    currentGenre = genre;
+    const theme = genreThemes[genre] || genreThemes["All"];
+
+    document.body.style.opacity = "0.85";
+
+    setTimeout(() => {
+        document.body.style.background = theme.bg;
+        playPauseBtn.style.background = theme.color;
+        playPauseBtn.style.boxShadow = `0 0 20px ${theme.color}`;
+        progress.style.background = theme.color;
+        document.body.style.opacity = "1";
+    }, 150);
+}
+
+function displaySongs(filter="") {
+    songList.innerHTML = "";
+    songs.forEach((song,index)=>{
+        if(song.name.toLowerCase().includes(filter.toLowerCase())){
+            const div = document.createElement("div");
+            div.classList.add("song-item");
+            div.innerText = song.name;
+            div.onclick = ()=>loadSong(index);
+            songList.appendChild(div);
+        }
+    });
+}
+
+function displaySongsByGenre(genre) {
+    songList.innerHTML = "";
+    songs.forEach((song,index)=>{
+        if(song.genre === genre){
+            const div = document.createElement("div");
+            div.classList.add("song-item");
+            div.innerText = song.name;
+            div.onclick = ()=>loadSong(index);
+            songList.appendChild(div);
+        }
+    });
+}
+
+function displayGenres(){
+    const genres = Object.keys(genreThemes);
+    genreList.innerHTML = "";
+    genres.forEach(g=>{
+        const div = document.createElement("div");
+        div.classList.add("genre-item");
+        div.innerText = g;
+        div.onclick = ()=>{
+            applyTheme(g);
+            if(g==="All") displaySongs();
+            else displaySongsByGenre(g);
+        };
+        genreList.appendChild(div);
+    });
+}
+
+searchInput.addEventListener("input",(e)=>{
+    displaySongs(e.target.value);
+});
+
+/* Keyboard Controls */
+document.addEventListener("keydown", (e) => {
+    if (document.activeElement.tagName === "INPUT") return;
+    if (!audio.src) return;
+
+    switch (e.code) {
+        case "Space":
+            e.preventDefault();
+            if (audio.paused) audio.play();
+            else audio.pause();
+            playPauseBtn.innerText = audio.paused ? "▶" : "⏸";
+            break;
+
+        case "ArrowLeft":
+            audio.currentTime = 0;
+            break;
+
+        case "ArrowRight":
+            nextSong();
+            break;
+    }
+});
+
+/* INIT */
+displayGenres();
+displaySongs();
+applyTheme("All");
+loadSong(0, false);
+</script>
+
+</body>
+</html>

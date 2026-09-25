@@ -4,8 +4,8 @@
    Ajoute, supprime ou modifie une ligne pour chaque compte.
    -------------------------------------------------------------------------- */
 const ACCOUNTS = [
-  { id: "A", name: "4B", icon: "book-open", key: "COLLE_ICI_LA_CLE_DE_4B" },
-  { id: "B", name: "4C", icon: "globe",     key: "COLLE_ICI_LA_CLE_DE_4C" },
+  { id: "A", name: "4B", icon: "book-open", key: "AQ.Ab8RN6IKIMZuvFFsbCalWvDAthVeA5Xq3k5ODm-msisP1oqtOw" },
+  { id: "B", name: "4C", icon: "globe",     key: "AQ.Ab8RN6JmOijU5oS-7E_VGF2aB_2FL0NKXRemg0U1wh2YcGCT3Q" },
 ];
 
 // Modèles essayés dans l'ordre : si le 1er est surchargé (503) ou introuvable (404), on passe au suivant.
